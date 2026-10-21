@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Scan URL{% endblock %}
+{% block content %}
+<h2>Scan URL</h2>
+<form method="post" action="{{ url_for('scan_page') }}" class="scan-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="url">Enter a URL</label>
+    <input type="text" id="url" name="url" value="{{ submitted_url if submitted_url else '' }}" placeholder="https://example.com" required>
+    <button type="submit">Scan URL</button>
+    {% if submitted_url %}
+    <a href="{{ url_for('scan_page') }}" class="secondary-link">Clear results</a>
+    {% endif %}
+</form>
+{% if error %}
+<div class="alert error">{{ error }}</div>
+{% endif %}
+{% if result %}
+<section class="panel result-panel">
+    <h3>Analysis Result</h3>
+    <p><strong>Submitted URL:</strong> {{ result.submitted_url }}</p>
+    <p><strong>Overall risk:</strong> <span class="badge {{ result.overall_risk | lower | replace(' ', '-') }}">{{ result.overall_risk }}</span></p>
+    <p><strong>Overall heuristic score:</strong> {{ result.risk_score }} / 100</p>
+    <p><strong>Rule score:</strong> {{ result.rule_score }} / 100</p>
+    <p><strong>Model verdict:</strong> {{ result.model_verdict }}</p>
+    <p><strong>Model probability:</strong> {{ "%.1f"|format(result.model_probability * 100) ~ "%" if result.model_probability is not none else 'Unavailable' }}</p>
+    <p class="hint">The model probability is its estimate. The combined heuristic score is not a calibrated probability. This result is not a guarantee that a website is safe or malicious.</p>
+    {% if result.analysis_status == "degraded" %}
+    <div class="alert">The trained model is unavailable. This scan used rule-based analysis only.</div>
+    {% endif %}
+    {% if result.signals_disagree %}
+    <div class="alert">The model and rule-based analysis disagree. Review both signals and their evidence.</div>
+    {% endif %}
+    <h4>Findings</h4>
+    <ul>
+        {% for finding in result.findings %}
+        <li><strong>{{ finding.title }}</strong> ({{ finding.severity }})<br>{{ finding.evidence }} — {{ finding.reason }}<br><em>{{ finding.recommendation }}</em></li>
+        {% endfor %}
+    </ul>
+    {% if result.model_explanation %}
+    <h4>Model feature contributions</h4>
+    <p class="hint">These are contributions from this Logistic Regression prediction, not global feature importance.</p>
+    <ul>
+        {% for item in result.model_explanation %}
+        <li>{{ item.feature }} contributed {{ item.direction }} ({{ item.contribution }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <p><strong>Explanation:</strong> {{ result.explanation }}</p>
+    {% if result.id %}
+    <p class="report-links">
+        <a href="{{ url_for('scan_json_report', scan_id=result.id) }}">Download JSON report</a>
+        <a href="{{ url_for('scan_html_report', scan_id=result.id) }}">Download printable HTML report</a>
+    </p>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

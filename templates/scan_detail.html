@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Scan Detail{% endblock %}
+{% block content %}
+<h2>Scan detail</h2>
+<p><strong>URL:</strong> {{ scan.submitted_url }}</p>
+<p><strong>Risk:</strong> {{ scan.overall_risk }}</p>
+<p><strong>Rule score:</strong> {{ scan.rule_score }}</p>
+<p><strong>Overall heuristic score:</strong> {{ scan.risk_score }} / 100</p>
+<p><strong>Analysis status:</strong> {{ scan.analysis_status }}</p>
+{% if scan.model_metadata %}
+<p><strong>Model:</strong> {{ scan.model_metadata.model_type }} | <strong>Dataset:</strong> {{ scan.model_metadata.dataset_source }} | <strong>Trained:</strong> {{ scan.model_metadata.training_timestamp }}</p>
+{% endif %}
+<p><strong>Explanation:</strong> {{ scan.explanation }}</p>
+{% if scan.model_explanation %}
+<h3>Model feature contributions</h3>
+<ul>{% for item in scan.model_explanation %}<li>{{ item.feature }} — {{ item.direction }} ({{ item.contribution }})</li>{% endfor %}</ul>
+{% endif %}
+<p class="report-links">
+    <a href="{{ url_for('scan_json_report', scan_id=scan.id) }}">Download JSON report</a>
+    <a href="{{ url_for('scan_html_report', scan_id=scan.id) }}">Download printable HTML report</a>
+</p>
+<h3>Findings</h3>
+<ul>
+{% for item in scan.findings %}
+<li><strong>{{ item.title }}</strong> ({{ item.severity }}) - {{ item.reason }}</li>
+{% endfor %}
+</ul>
+<a href="{{ url_for('history_page') }}">Back to history</a>
+{% endblock %}

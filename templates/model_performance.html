@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Model Performance{% endblock %}
+{% block content %}
+<h2>Model Performance</h2>
+{% if metrics_error %}
+<div class="alert error">{{ metrics_error }}</div>
+{% endif %}
+{% if metrics %}
+<div class="stats-grid">
+    <div class="stat-card"><span class="stat-label">Accuracy</span><strong>{{ metrics.accuracy }}</strong></div>
+    <div class="stat-card"><span class="stat-label">Precision</span><strong>{{ metrics.precision }}</strong></div>
+    <div class="stat-card"><span class="stat-label">Recall</span><strong>{{ metrics.recall }}</strong></div>
+    <div class="stat-card"><span class="stat-label">F1 score</span><strong>{{ metrics.f1 }}</strong></div>
+</div>
+<p><strong>Dataset size:</strong> {{ metrics.dataset_size }}</p>
+<p><strong>Dataset source:</strong> {{ metrics.dataset_source }}</p>
+<p><strong>Model:</strong> {{ metrics.model_type }} | <strong>Trained:</strong> {{ metrics.training_timestamp }}</p>
+<p><strong>Evaluation:</strong> {{ metrics.evaluation_method }}</p>
+<p><strong>Train / test split:</strong> {{ metrics.train_size }} / {{ metrics.test_size }}</p>
+<p><strong>ROC-AUC:</strong> {{ metrics.roc_auc if metrics.roc_auc is not none else 'Unavailable' }} |
+    <strong>Average precision:</strong> {{ metrics.average_precision if metrics.average_precision is not none else 'Unavailable' }}</p>
+<p><strong>False-positive rate:</strong> {{ metrics.false_positive_rate if metrics.false_positive_rate is not none else 'Unavailable' }} |
+    <strong>False-negative rate:</strong> {{ metrics.false_negative_rate if metrics.false_negative_rate is not none else 'Unavailable' }}</p>
+<p><strong>Class counts:</strong> legitimate {{ metrics.class_distribution.legitimate }}, phishing {{ metrics.class_distribution.phishing }}</p>
+<h3>Confusion matrix</h3>
+<p class="hint">Rows are actual labels and columns are predicted labels.</p>
+<div class="table-wrap">
+    <table class="confusion-matrix">
+        <thead><tr><th>Actual / Predicted</th><th>Legitimate</th><th>Phishing</th></tr></thead>
+        <tbody>
+            <tr><th>Legitimate</th><td>{{ metrics.confusion_matrix[0][0] }}</td><td>{{ metrics.confusion_matrix[0][1] }}</td></tr>
+            <tr><th>Phishing</th><td>{{ metrics.confusion_matrix[1][0] }}</td><td>{{ metrics.confusion_matrix[1][1] }}</td></tr>
+        </tbody>
+    </table>
+</div>
+{% if roc_points %}
+<h3>ROC curve</h3>
+<p class="hint">Generated from the saved offline test-set probabilities.</p>
+<svg class="metric-chart" viewBox="0 0 100 100" role="img" aria-label="ROC curve: false positive rate versus true positive rate">
+    <line x1="10" y1="90" x2="90" y2="10" class="chart-baseline"></line>
+    <polyline points="{{ roc_points }}" class="chart-line"></polyline>
+</svg>
+{% endif %}
+{% if pr_points %}
+<h3>Precision-recall curve</h3>
+<svg class="metric-chart" viewBox="0 0 100 100" role="img" aria-label="Precision recall curve">
+    <polyline points="{{ pr_points }}" class="chart-line"></polyline>
+</svg>
+{% endif %}
+{% if coefficients %}
+<h3>Largest model coefficients</h3>
+<p class="hint">Global logistic-regression coefficients describe model direction; they are not explanations for one individual URL.</p>
+<ul>
+    {% for item in coefficients %}
+    <li>{{ item.feature }}: {{ item.coefficient }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+<p class="hint">Higher recall reduces missed phishing examples; precision helps avoid incorrectly flagging legitimate sites. These offline test-set results do not guarantee real-world accuracy. Random splits may place related domains or campaigns in both sets.</p>
+{% else %}
+<div class="empty-state">No trained model evaluation is available. Follow the dataset guide, then run <code>python training/train_model.py</code> to generate actual metrics.</div>
+{% endif %}
+{% endblock %}

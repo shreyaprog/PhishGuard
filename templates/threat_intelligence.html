@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Threat Intelligence{% endblock %}
+{% block content %}
+<h2>Threat Intelligence</h2>
+<p>Stored indicators: {{ indicator_count }}</p>
+<p class="hint">This is a local indicator list, not a live threat feed. No match means unknown or unverified, not safe.</p>
+<form method="get" action="{{ url_for('threat_intelligence_page') }}" class="lookup-form">
+    <label for="indicator-query">Exact URL or domain lookup</label>
+    <input id="indicator-query" name="q" value="{{ query }}" placeholder="example.test or https://example.test/path">
+    <button type="submit">Search local indicators</button>
+</form>
+{% if query %}
+    {% if results %}
+    <h3>Exact local matches</h3>
+    <ul>
+    {% for result in results %}
+        <li>{{ result.url }} — {{ result.status }} ({{ result.source }}, updated {{ result.last_updated or 'unknown' }})</li>
+    {% endfor %}
+    </ul>
+    {% else %}
+    <p>No exact local indicator match was found. This does not establish that the URL or domain is legitimate.</p>
+    {% endif %}
+{% endif %}
+<form method="post" action="{{ url_for('upload_indicators') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="file" name="csv_file" accept=".csv" required>
+    <button type="submit">Import CSV</button>
+</form>
+{% if indicators %}
+<table>
+    <thead><tr><th>URL</th><th>Type</th><th>Status</th><th>Source</th><th>Updated</th></tr></thead>
+    <tbody>
+    {% for item in indicators %}
+    <tr><td>{{ item.url }}</td><td>{{ item.indicator_type }}</td><td>{{ item.status }}</td><td>{{ item.source }}</td><td>{{ item.last_updated or 'Unknown' }}</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">No threat indicators are stored locally yet.</div>
+{% endif %}
+{% endblock %}

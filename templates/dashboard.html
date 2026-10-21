@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <p class="eyebrow">OVERVIEW</p>
+        <h1>Dashboard</h1>
+        <p class="page-description">A summary of URL checks recorded in this app.</p>
+    </div>
+    <a class="button-link" href="{{ url_for('scan_page') }}">Check a URL</a>
+</header>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-label">URLs checked</span>
+        <strong>{{ stats.total }}</strong>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Flagged for review</span>
+        <strong>{{ stats.phishing_like }}</strong>
+        <small>{{ stats.phishing_percentage }}% of recorded checks</small>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Low apparent risk</span>
+        <strong>{{ stats.legitimate }}</strong>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Inconclusive</span>
+        <strong>{{ stats.inconclusive }}</strong>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Failed analyses</span>
+        <strong>{{ stats.failed }}</strong>
+    </div>
+</div>
+
+{% if stats.recent %}
+<section class="panel recent-scans">
+    <div class="section-heading">
+        <div>
+            <h2>Recent checks</h2>
+            <p>The latest URL analyses saved locally.</p>
+        </div>
+        <a href="{{ url_for('history_page') }}">View history</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>URL</th><th>Assessment</th><th>Checked</th></tr>
+            </thead>
+            <tbody>
+                {% for row in stats.recent %}
+                <tr>
+                    <td class="url-cell">{{ row.submitted_url }}</td>
+                    <td><span class="risk-label">{{ row.overall_risk }}</span></td>
+                    <td>{{ row.scan_time }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% else %}
+<section class="empty-state">
+    <h2>No checks yet</h2>
+    <p>URLs you analyse will appear here. Results are estimates, not guarantees that a website is safe or malicious.</p>
+    <a class="button-link" href="{{ url_for('scan_page') }}">Check your first URL</a>
+</section>
+{% endif %}
+{% endblock %}

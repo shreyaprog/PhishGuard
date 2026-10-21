@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Cloud Security Impact{% endblock %}
+{% block content %}
+<h2>Cloud Security Impact</h2>
+<p>Phishing can expose passwords, MFA approvals, or active sessions. If an attacker gains access to a cloud identity, the impact depends on that identity's permissions and the customer's monitoring and response controls.</p>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Potential impact</th><th>Complementary defensive controls</th></tr></thead>
+        <tbody>
+            <tr><td>Stolen cloud or email credentials</td><td>Phishing-resistant MFA where available, suspicious sign-in detection, password reset and session revocation.</td></tr>
+            <tr><td>Abuse of excessive IAM permissions</td><td>Least privilege, role separation, short-lived credentials, periodic access review, and alerts for privilege changes.</td></tr>
+            <tr><td>Unauthorised console or API access</td><td>Strong authentication, session controls, CloudTrail audit logging, and rapid credential revocation.</td></tr>
+            <tr><td>Unauthorised cloud storage access</td><td>Restrictive bucket policies, block-public-access controls, encryption, access logging, and data monitoring.</td></tr>
+            <tr><td>Data exposure or account takeover</td><td>Incident response procedures, log review, credential rotation, access containment, and recovery planning.</td></tr>
+        </tbody>
+    </table>
+</div>
+<h3>AWS shared responsibility model</h3>
+<p>AWS is responsible for security <em>of</em> the cloud, including the physical facilities, hardware, networking, and virtualization layer. Customers are responsible for security <em>in</em> the cloud, including identity and access configuration, data, encryption choices, network rules, and workload settings. The exact division varies by AWS service.</p>
+<p>Useful references: <a href="https://aws.amazon.com/compliance/shared-responsibility-model/">AWS Shared Responsibility Model</a>, <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">IAM best practices</a>, <a href="https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html">AWS CloudTrail</a>, and <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html">Amazon S3 security best practices</a>.</p>
+<p class="hint">PhishGuard analyses submitted URL text only. It does not connect to AWS or prevent cloud compromise; the controls above are complementary defensive measures.</p>
+{% endblock %}

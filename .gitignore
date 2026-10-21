@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+*.pyc
+phishguard.db
+models/*.joblib
+data/*.csv

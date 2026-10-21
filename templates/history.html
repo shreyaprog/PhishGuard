@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Scan History{% endblock %}
+{% block content %}
+<h2>Scan History</h2>
+<div class="history-tools">
+    <form method="get" action="{{ url_for('history_page') }}">
+        <label for="search">Search submitted URL</label>
+        <input id="search" name="q" value="{{ search }}" maxlength="256">
+        <label for="risk">Filter by assessment</label>
+        <select id="risk" name="risk">
+            <option value="" {{ 'selected' if not selected_risk else '' }}>All assessments</option>
+            <option value="High risk" {{ 'selected' if selected_risk == 'High risk' else '' }}>High risk</option>
+            <option value="Suspicious" {{ 'selected' if selected_risk == 'Suspicious' else '' }}>Suspicious</option>
+            <option value="Low apparent risk" {{ 'selected' if selected_risk == 'Low apparent risk' else '' }}>Low apparent risk</option>
+            <option value="Inconclusive" {{ 'selected' if selected_risk == 'Inconclusive' else '' }}>Inconclusive</option>
+        </select>
+        <button type="submit">Search and filter</button>
+    </form>
+    <a href="{{ url_for('export_history') }}">Export CSV</a>
+</div>
+{% if history %}
+<form method="post" action="{{ url_for('clear_history_page') }}" class="confirm-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label><input type="checkbox" name="confirm" value="yes" required> I understand this will remove all scan history.</label>
+    <button type="submit" class="secondary-button">Clear all history</button>
+</form>
+{% endif %}
+{% if history %}
+<table>
+    <thead><tr><th>Time</th><th>URL</th><th>Assessment</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for row in history %}
+    <tr>
+        <td>{{ row.scan_time }}</td>
+        <td>{{ row.submitted_url }}</td>
+        <td>{{ row.overall_risk }}</td>
+        <td class="actions">
+            <a href="{{ url_for('scan_detail_page', scan_id=row.id) }}">Details</a>
+            <a href="{{ url_for('scan_json_report', scan_id=row.id) }}">JSON</a>
+            <form method="post" action="{{ url_for('delete_history_item', scan_id=row.id) }}" class="confirm-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="text-button">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">No scan history yet.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}PhishGuard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <a class="brand" href="{{ url_for('dashboard') }}">PhishGuard</a>
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('scan_page') }}">Scan URL</a>
+                <a href="{{ url_for('history_page') }}">Scan History</a>
+                <a href="{{ url_for('threat_intelligence_page') }}">Threat Intelligence</a>
+                <a href="{{ url_for('model_performance_page') }}">Model Performance</a>
+                <a href="{{ url_for('security_guide_page') }}">Security Guide</a>
+                <a href="{{ url_for('cloud_security_page') }}">Cloud Security Impact</a>
+                <a href="{{ url_for('about_page') }}">About the Project</a>
+            </nav>
+            <p class="sidebar-note">A simple tool for checking suspicious links.</p>
+        </aside>
+        <main class="content">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages" role="status">
+                        {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>
