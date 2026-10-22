@@ -4,6 +4,19 @@
 <h2>Threat Intelligence</h2>
 <p>Stored indicators: {{ indicator_count }}</p>
 <p class="hint">This is a local indicator list, not a live threat feed. No match means unknown or unverified, not safe.</p>
+
+<section class="panel">
+    <h3>Feed status</h3>
+    <p><strong>Configured provider:</strong> {{ provider_status.provider or 'urlhaus' }}</p>
+    <p><strong>Last attempted refresh:</strong> {{ provider_status.last_attempted_refresh or 'Never' }}</p>
+    <p><strong>Last successful refresh:</strong> {{ provider_status.last_successful_refresh or 'Never' }}</p>
+    <p><strong>Latest status:</strong> {{ provider_status.latest_status or 'never_run' }}</p>
+    <form method="post" action="{{ url_for('refresh_indicators') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Refresh local feed</button>
+    </form>
+</section>
+
 <form method="get" action="{{ url_for('threat_intelligence_page') }}" class="lookup-form">
     <label for="indicator-query">Exact URL or domain lookup</label>
     <input id="indicator-query" name="q" value="{{ query }}" placeholder="example.test or https://example.test/path">

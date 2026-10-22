@@ -28,6 +28,7 @@ from src.predictor import load_model, predict_url
 from src.report_generator import render_html_report
 from src.risk_scorer import combine_signals
 from src.rule_engine import run_rule_engine
+from src.threat_intelligence import get_feed_status, lookup_indicator, refresh_provider_feed
 from src.url_parser import parse_url, validate_url
 
 app = Flask(__name__)
@@ -99,6 +100,7 @@ def scan_page():
         return render_template("scan.html", result=None, error=msg, submitted_url=submitted_url)
     parsed = parse_url(submitted_url)
     findings = run_rule_engine(submitted_url)
+    threat_intelligence = lookup_indicator(submitted_url)
     model_payload = load_model()
     model_out = predict_url(submitted_url, model_payload) if model_payload else {"status": "degraded", "label": None, "probability": None}
     model_available = model_out["status"] == "ok"
@@ -126,6 +128,7 @@ def scan_page():
             "training_timestamp": model_payload.get("training_timestamp"),
         } if model_available else {},
         "findings": findings,
+        "threat_intelligence": threat_intelligence,
         "model_version": "logistic-regression" if model_available else "degraded-mode",
         "analysis_status": "complete" if model_available else "degraded",
         "explanation": explanation,
@@ -205,13 +208,34 @@ def scan_html_report(scan_id):
 def threat_intelligence_page():
     query = request.args.get("q", "")
     results = search_indicators(query) if query else []
+    provider_status = get_feed_status()
     return render_template(
         "threat_intelligence.html",
         indicators=get_indicators(),
         indicator_count=get_indicator_count(),
         query=query,
         results=results,
+        provider_status=provider_status,
+        refresh_summary=provider_status,
     )
+
+
+@app.route("/threat-intelligence/refresh", methods=["POST"])
+def refresh_indicators():
+    try:
+        summary = refresh_provider_feed()
+    except Exception as exc:
+        logging.exception("Threat-intelligence refresh failed.")
+        flash(f"Refresh failed: {exc}")
+        return redirect(url_for("threat_intelligence_page"))
+    if summary.get("status") == "success":
+        flash(
+            f"Threat-intelligence refresh completed: {summary.get('records_inserted', 0)} inserted, "
+            f"{summary.get('records_updated', 0)} updated, {summary.get('records_rejected', 0)} rejected."
+        )
+    else:
+        flash(f"Threat-intelligence refresh failed: {summary.get('errors', ['Unknown error'])[0] if summary.get('errors') else 'Unknown error'}")
+    return redirect(url_for("threat_intelligence_page"))
 
 
 @app.route("/threat-intelligence/upload", methods=["POST"])

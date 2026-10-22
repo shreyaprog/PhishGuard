@@ -30,6 +30,17 @@
     {% if result.signals_disagree %}
     <div class="alert">The model and rule-based analysis disagree. Review both signals and their evidence.</div>
     {% endif %}
+    {% if result.threat_intelligence %}
+    <h4>Threat intelligence</h4>
+    <p><strong>Status:</strong> {{ result.threat_intelligence.status }}</p>
+    <p><strong>Match found:</strong> {{ 'Yes' if result.threat_intelligence.match_found else 'No' }}</p>
+    {% if result.threat_intelligence.match_found %}
+    <p><strong>Matched indicator:</strong> {{ result.threat_intelligence.indicator_value }} ({{ result.threat_intelligence.indicator_type }})</p>
+    <p><strong>Provider:</strong> {{ result.threat_intelligence.provider }}</p>
+    <p><strong>Match method:</strong> {{ result.threat_intelligence.match_method }}</p>
+    {% endif %}
+    <p><strong>Explanation:</strong> {{ result.threat_intelligence.explanation }}</p>
+    {% endif %}
     <h4>Findings</h4>
     <ul>
         {% for finding in result.findings %}

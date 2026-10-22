@@ -75,6 +75,16 @@ python -m pytest -q
 
 Scan History supports risk filtering, deletion, clear-history confirmation, and CSV export. Each scan offers JSON and printable HTML downloads. The Threat Intelligence page is an explicitly local indicator list, not a live feed; CSV import requires a valid `url` column and skips duplicate URLs. No match means unknown or unverified, not legitimate.
 
+### Threat intelligence refresh
+
+PhishGuard now includes a provider adapter for the URLHaus malicious URL feed (https://urlhaus.abuse.ch/), with a local SQLite cache and a manual refresh action from the Threat Intelligence page. The default configuration is disabled only if `THREAT_INTELLIGENCE_ENABLED=false` or if the provider is otherwise absent. Live refreshes are network-aware and refuse to fabricate results when the provider errors, times out, or rate-limits the application. Local lookup remains available when no live provider is configured.
+
+To refresh the local database manually, use:
+
+```powershell
+py -m src.threat_intelligence refresh
+```
+
 ## Troubleshooting
 
 - **Model unavailable:** The app continues with rule-only analysis. Add a correctly labelled CSV and run the training command.

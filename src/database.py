@@ -55,9 +55,56 @@ def init_db():
             status TEXT,
             source TEXT,
             last_updated TEXT,
-            notes TEXT
+            notes TEXT,
+            indicator_value TEXT,
+            canonical_value TEXT,
+            external_id TEXT,
+            first_seen TEXT,
+            last_seen TEXT,
+            verification_status TEXT,
+            feed_retrieved_at TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            expires_at TEXT,
+            raw_metadata TEXT
         )
         """
+    )
+    indicator_columns = {row["name"] for row in conn.execute("PRAGMA table_info(indicators)").fetchall()}
+    for column_name, column_type in {
+        "indicator_value": "TEXT",
+        "canonical_value": "TEXT",
+        "external_id": "TEXT",
+        "first_seen": "TEXT",
+        "last_seen": "TEXT",
+        "verification_status": "TEXT",
+        "feed_retrieved_at": "TEXT",
+        "created_at": "TEXT",
+        "updated_at": "TEXT",
+        "expires_at": "TEXT",
+        "raw_metadata": "TEXT",
+    }.items():
+        if column_name not in indicator_columns:
+            conn.execute(f"ALTER TABLE indicators ADD COLUMN {column_name} {column_type}")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS feed_refreshes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider TEXT NOT NULL,
+            status TEXT,
+            started_at TEXT,
+            finished_at TEXT,
+            records_fetched INTEGER,
+            records_inserted INTEGER,
+            records_updated INTEGER,
+            invalid_records INTEGER,
+            errors TEXT,
+            last_successful_refresh TEXT
+        )
+        """
+    )
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_indicator_identity ON indicators (source, indicator_type, lower(url))"
     )
     conn.commit()
     conn.close()
@@ -194,13 +241,36 @@ def search_indicators(value):
     rows = conn.execute(
         """
         SELECT * FROM indicators
-        WHERE lower(url) = ? OR lower(domain) = ? OR lower(domain) = ?
+        WHERE lower(url) = ? OR lower(domain) = ? OR lower(indicator_value) = ? OR lower(url) = ? OR lower(domain) = ?
         ORDER BY id DESC LIMIT 50
         """,
-        (parsed_value, hostname, value.lower()),
+        (parsed_value, hostname, parsed_value, value.lower(), hostname),
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+def get_feed_refresh_history(limit=20):
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM feed_refreshes ORDER BY id DESC LIMIT ?",
+        (max(1, min(int(limit), 500)),),
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_feed_summary():
+    conn = get_connection()
+    latest = conn.execute("SELECT * FROM feed_refreshes ORDER BY id DESC LIMIT 1").fetchone()
+    total = conn.execute("SELECT COUNT(*) AS count FROM indicators").fetchone()["count"]
+    by_provider = conn.execute("SELECT source, COUNT(*) AS count FROM indicators GROUP BY source ORDER BY count DESC").fetchall()
+    conn.close()
+    return {
+        "latest_refresh": dict(latest) if latest else None,
+        "total_indicators": total,
+        "by_provider": [dict(row) for row in by_provider],
+    }
 
 
 def import_indicators_from_csv(handle):
@@ -226,11 +296,22 @@ def import_indicators_from_csv(handle):
         rows.append((
             parsed["normalised"],
             parsed["hostname"],
-            (row.get("indicator_type") or "phishing").strip()[:80],
+            (row.get("indicator_type") or ("url" if "://" in submitted_url else "domain")).strip()[:80],
             (row.get("status") or "known").strip()[:80],
             (row.get("source") or "CSV import").strip()[:160],
             (row.get("last_updated") or datetime.now(timezone.utc).isoformat(timespec="seconds")).strip()[:80],
             (row.get("notes") or "Imported from local CSV").strip()[:500],
+            parsed["normalised"],
+            parsed["normalised"],
+            (row.get("external_id") or "").strip()[:255],
+            (row.get("first_seen") or "").strip()[:80],
+            (row.get("last_seen") or "").strip()[:80],
+            (row.get("verification_status") or (row.get("status") or "known")).strip()[:200],
+            (row.get("feed_retrieved_at") or datetime.now(timezone.utc).isoformat(timespec="seconds")).strip()[:80],
+            datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            (row.get("expires_at") or "").strip()[:80],
+            json.dumps({k: v for k, v in row.items() if v is not None}, ensure_ascii=True, sort_keys=True)[:10000],
         ))
 
     conn = get_connection()
@@ -238,11 +319,17 @@ def import_indicators_from_csv(handle):
         before = conn.total_changes
         conn.executemany(
             """
-            INSERT INTO indicators (url, domain, indicator_type, status, source, last_updated, notes)
-            SELECT ?, ?, ?, ?, ?, ?, ?
-            WHERE NOT EXISTS (SELECT 1 FROM indicators WHERE lower(url) = lower(?))
+            INSERT INTO indicators (
+                url, domain, indicator_type, status, source, last_updated, notes,
+                indicator_value, canonical_value, external_id, first_seen, last_seen,
+                verification_status, feed_retrieved_at, created_at, updated_at, expires_at, raw_metadata
+            )
+            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            WHERE NOT EXISTS (
+                SELECT 1 FROM indicators WHERE lower(url) = lower(?) OR lower(indicator_value) = lower(?)
+            )
             """,
-            [row + (row[0],) for row in rows],
+            [row + (row[0], row[0]) for row in rows],
         )
         imported = conn.total_changes - before
         conn.commit()
